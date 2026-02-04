@@ -2,6 +2,11 @@ variable "aws_region" {
   description = "AWS region (course: any, e.g. us-east-1)"
   type        = string
   default     = "us-east-1"
+
+  validation {
+    condition     = can(regex("^[a-z]{2}-[a-z]+-[0-9]{1}$", var.aws_region))
+    error_message = "AWS region must be a valid format (e.g., us-east-1, eu-west-2)."
+  }
 }
 
 variable "aws_profile" {
@@ -25,16 +30,37 @@ variable "ssh_cidr" {
   description = "CIDR allowed to SSH (best practice). For lab you can use 0.0.0.0/0, but prefer your public IP /32."
   type        = string
   default     = "0.0.0.0/0"
+
+  validation {
+    condition     = can(cidrhost(var.ssh_cidr, 0))
+    error_message = "SSH CIDR must be a valid IPv4 CIDR notation (e.g., 203.0.113.5/32 or 0.0.0.0/0)."
+  }
 }
 
 variable "vpc_id" {
-  description = "vpc-0c18a24fe2f3bcf1a"
+  description = "VPC ID where EC2 instance will be created (e.g., vpc-0c18a24fe2f3bcf1a)"
   type        = string
+
+  validation {
+    condition     = can(regex("^vpc-[a-z0-9]{8,}$", var.vpc_id))
+    error_message = "VPC ID must start with 'vpc-' followed by alphanumeric characters (e.g., vpc-0c18a24fe2f3bcf1a)."
+  }
 }
 
 variable "subnet_id" {
-  description = "subnet-0dfdde0639e1491dc"
+  description = "Subnet ID where EC2 instance will be created (e.g., subnet-0dfdde0639e1491dc)"
   type        = string
+
+  validation {
+    condition     = can(regex("^subnet-[a-z0-9]{8,}$", var.subnet_id))
+    error_message = "Subnet ID must start with 'subnet-' followed by alphanumeric characters (e.g., subnet-0dfdde0639e1491dc)."
+  }
+}
+
+variable "dockerhub_username" {
+  description = "Docker Hub username"
+  type        = string
+  default     = "luisgamatw"
 }
 
 variable "dockerhub_token" {

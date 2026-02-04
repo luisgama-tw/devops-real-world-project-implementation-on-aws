@@ -11,7 +11,8 @@ subnet_id = "subnet-xxxxxxxxxxxxxxxxx"  # Your Subnet ID
 
 # Security Configuration
 allow_all_tcp = true           # Lab only! Set to false in production
-ssh_cidr      = "0.0.0.0/0"   # Restrict to your IP: "YOUR_IP/32"
+ssh_cidr      = "0.0.0.0/0"   # SECURITY: Restrict to your IP! Run 'make get-my-ip' and use "YOUR_IP/32"
 
 # Docker Hub Configuration
-# dockerhub_token = "placeholder"  # Managed via AWS Secrets Manager
+dockerhub_username = "your-dockerhub-username"  # Your Docker Hub username
+# dockerhub_token = "placeholder"  # Managed via AWS Secrets Manager (use 'make docker-secret-setup')

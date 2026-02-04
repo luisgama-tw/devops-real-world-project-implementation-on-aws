@@ -1,4 +1,4 @@
-.PHONY: help init plan apply destroy ssh logs status restart update-container validate clean aws-login aws-logout aws-whoami stats disk-usage info sg-rules cost-estimate stop start docker-login docker-secret-setup docker-secret-update docker-secret-show
+.PHONY: help init plan apply destroy ssh logs status restart update-container validate clean get-my-ip aws-login aws-logout aws-whoami stats disk-usage info sg-rules cost-estimate stop start docker-login docker-secret-setup docker-secret-update docker-secret-show
 
 # Colors for output
 RED := \033[0;31m
@@ -139,6 +139,12 @@ fmt: ## Format Terraform files
 	@echo "$(GREEN)Formatting Terraform files...$(NC)"
 	terraform fmt -recursive
 
+get-my-ip: ## Get your current public IP address
+	@echo "$(GREEN)Your current public IP address:$(NC)"
+	@curl -s https://api.ipify.org && echo ""
+	@echo ""
+	@echo "$(YELLOW)Use this IP in terraform.tfvars for my_ip variable to restrict SSH access$(NC)"
+
 # AWS Authentication
 aws-login: ## Login to AWS via SSO
 	@echo "$(GREEN)Logging into AWS SSO...$(NC)"
@@ -213,6 +219,10 @@ docker-login: ## Login to Docker Hub using token from AWS Secrets Manager
 	if [ -z "$$AWS_PROFILE" ]; then \
 		AWS_PROFILE="tw-poweruserplus"; \
 	fi; \
+	DOCKER_USER=$$(awk '/variable "dockerhub_username"/,/}/' variables.tf | grep 'default' | grep -o '"[^"]*"' | tr -d '"'); \
+	if [ -z "$$DOCKER_USER" ]; then \
+		DOCKER_USER="luisgamatw"; \
+	fi; \
 	echo "Fetching token from AWS Secrets Manager..."; \
 	TOKEN=$$(aws secretsmanager get-secret-value \
 		--secret-id MyTWTestToken \
@@ -224,8 +234,8 @@ docker-login: ## Login to Docker Hub using token from AWS Secrets Manager
 		echo "Run 'make docker-secret-setup' first or check your AWS login."; \
 		exit 1; \
 	fi; \
-	echo "Username: luisgamatw"; \
-	echo "$$TOKEN" | docker login -u luisgamatw --password-stdin && \
+	echo "Username: $$DOCKER_USER"; \
+	echo "$$TOKEN" | docker login -u $$DOCKER_USER --password-stdin && \
 	echo "$(GREEN)✓ Successfully logged into Docker Hub!$(NC)"
 
 # Monitoring & Statistics
