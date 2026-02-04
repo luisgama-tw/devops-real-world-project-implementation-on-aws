@@ -47,6 +47,38 @@ This project provisions:
 └─────────────────────────────────────────┘
 ```
 
+## 🗄️ Remote Backend (S3 + DynamoDB)
+
+This project uses **remote state management** for production-ready infrastructure:
+
+### Benefits
+- ✅ **Team Collaboration**: Centralized state accessible to entire team
+- ✅ **State Locking**: Prevents concurrent modifications (DynamoDB)
+- ✅ **Versioning**: Full history of state changes in S3
+- ✅ **Security**: Encrypted state at rest (AES-256)
+- ✅ **Disaster Recovery**: Automatic backup via S3 versioning
+
+### Backend Configuration
+- **S3 Bucket**: `terraform-state-<ACCOUNT_ID>-<REGION>`
+- **DynamoDB Table**: `terraform-state-locks-ec2-docker`
+- **State Path**: `infra/ec2-docker/terraform.tfstate`
+- **Encryption**: Server-side (SSE-S3)
+
+### Backend Management Commands
+```bash
+# View backend status
+make backend-status
+
+# List all resources in state
+make state-list
+
+# View state file versions
+make state-versions
+```
+
+### First-Time Setup
+The backend is automatically created when you run `make apply`. The state migration happens transparently on first `terraform init`.
+
 ## 🚀 Quick Start
 
 ### 1. Initial Setup
@@ -132,6 +164,14 @@ make help
 | `make sg-rules` | Security group rules |
 | `make cost-estimate` | Estimate monthly costs |
 
+### Backend Management
+
+| Command | Description |
+|---------|-------------|
+| `make backend-status` | Show backend configuration and state |
+| `make state-list` | List all resources in Terraform state |
+| `make state-versions` | List state file versions in S3 |
+
 ## 📁 Project Structure
 
 ```
@@ -178,9 +218,10 @@ Monthly costs (US East 1):
 - **EC2 t3.large**: ~$60.74/month
 - **EBS 30GB**: ~$2.40/month
 - **Secrets Manager**: ~$0.40/month
-- **Total**: ~$63.54/month
+- **Backend (S3 + DynamoDB)**: ~$0.50/month
+- **Total**: ~$64.04/month
 
-**Save costs**: Use `make stop` when not in use (~$2.80/month)
+**Save costs**: Use `make stop` when not in use (~$3.30/month)
 
 ## 🔐 Security Best Practices
 

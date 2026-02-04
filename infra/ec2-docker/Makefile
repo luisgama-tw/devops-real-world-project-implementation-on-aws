@@ -1,4 +1,4 @@
-.PHONY: help init plan apply destroy ssh logs status restart update-container validate clean get-my-ip aws-login aws-logout aws-whoami stats disk-usage info sg-rules cost-estimate stop start docker-login docker-secret-setup docker-secret-update docker-secret-show
+.PHONY: help init plan apply destroy ssh logs status restart update-container validate clean get-my-ip aws-login aws-logout aws-whoami stats disk-usage info sg-rules cost-estimate stop start docker-login docker-secret-setup docker-secret-update docker-secret-show backend-status state-list state-versions
 
 # Colors for output
 RED := \033[0;31m
@@ -313,15 +313,21 @@ cost-estimate: ## Estimate monthly AWS costs
 	@echo "  - Secret storage (MyTWTestToken): ~\$$0.40/month"
 	@echo "  - API calls: ~\$$0.05/10,000 calls (negligible)"
 	@echo ""
+	@echo "Backend (S3 + DynamoDB):"
+	@echo "  - S3 storage (~34KB state): ~\$$0.001/month"
+	@echo "  - S3 requests: ~\$$0.01/month"
+	@echo "  - DynamoDB (on-demand): ~\$$0.00/month (free tier)"
+	@echo "  - Backend total: ~\$$0.50/month"
+	@echo ""
 	@echo "Data Transfer:"
 	@echo "  - Inbound: Free"
 	@echo "  - Outbound (first 100GB): Free"
 	@echo "  - Outbound (>100GB): ~\$$0.09/GB"
 	@echo ""
-	@echo "$(YELLOW)Estimated Total: ~\$$63.54/month$(NC)"
+	@echo "$(YELLOW)Estimated Total: ~\$$64.04/month$(NC)"
 	@echo ""
 	@echo "💡 Tip: Use 'make stop' when not in use to save costs"
-	@echo "   - Stopped instance: ~\$$2.80/month (EBS + Secrets Manager only)"
+	@echo "   - Stopped instance: ~\$$3.30/month (EBS + Secrets + Backend only)"
 
 # Instance Operations
 stop: ## Stop EC2 instance (saves costs, keeps EBS)
@@ -357,6 +363,46 @@ start: ## Start stopped EC2 instance
 	echo "Waiting for instance to be ready..." && \
 	sleep 10 && \
 	echo "Run 'make health' to check if the application is ready."
+
+# Backend Management
+backend-status: ## Show backend configuration and state
+	@echo "$(GREEN)Backend Configuration:$(NC)"
+	@grep -A 6 'backend "s3"' backend.tf || echo "$(YELLOW)Backend not configured$(NC)"
+	@echo ""
+	@echo "$(GREEN)Remote State Status:$(NC)"
+	@AWS_PROFILE=$$(awk '/variable "aws_profile"/,/}/' variables.tf | grep 'default' | grep -o '"[^"]*"' | tr -d '"'); \
+	if [ -z "$$AWS_PROFILE" ]; then \
+		AWS_PROFILE="tw-poweruserplus"; \
+	fi; \
+	BUCKET=$$(terraform output -raw backend_bucket 2>/dev/null); \
+	if [ -n "$$BUCKET" ]; then \
+		echo "Bucket: $$BUCKET"; \
+		aws s3 ls s3://$$BUCKET/infra/ec2-docker/ --profile $$AWS_PROFILE 2>/dev/null || echo "$(YELLOW)No state files found$(NC)"; \
+	else \
+		echo "$(YELLOW)Backend outputs not available$(NC)"; \
+	fi
+
+state-list: ## List all resources in Terraform state
+	@echo "$(GREEN)Terraform State Resources:$(NC)"
+	@terraform state list
+
+state-versions: ## List state file versions in S3
+	@echo "$(GREEN)State File Versions:$(NC)"
+	@AWS_PROFILE=$$(awk '/variable "aws_profile"/,/}/' variables.tf | grep 'default' | grep -o '"[^"]*"' | tr -d '"'); \
+	if [ -z "$$AWS_PROFILE" ]; then \
+		AWS_PROFILE="tw-poweruserplus"; \
+	fi; \
+	BUCKET=$$(terraform output -raw backend_bucket 2>/dev/null); \
+	if [ -n "$$BUCKET" ]; then \
+		aws s3api list-object-versions \
+			--bucket $$BUCKET \
+			--prefix infra/ec2-docker/terraform.tfstate \
+			--profile $$AWS_PROFILE \
+			--query 'Versions[*].[LastModified,VersionId,Size]' \
+			--output table || echo "$(YELLOW)Failed to list versions$(NC)"; \
+	else \
+		echo "$(YELLOW)Backend not configured$(NC)"; \
+	fi
 
 # Quick Deploy
 quick-deploy: init validate apply ## Initialize, validate and apply in one command
