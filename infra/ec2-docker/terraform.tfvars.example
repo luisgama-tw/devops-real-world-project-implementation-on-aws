@@ -1,0 +1,17 @@
+# AWS Configuration
+aws_region  = "us-east-1"
+aws_profile = "your-sso-profile-name"  # Your AWS SSO profile
+
+# SSH Key Pair
+key_name = "your-key-pair-name"  # Name of your EC2 key pair
+
+# Network Configuration
+vpc_id    = "vpc-xxxxxxxxxxxxxxxxx"     # Your VPC ID
+subnet_id = "subnet-xxxxxxxxxxxxxxxxx"  # Your Subnet ID
+
+# Security Configuration
+allow_all_tcp = true           # Lab only! Set to false in production
+ssh_cidr      = "0.0.0.0/0"   # Restrict to your IP: "YOUR_IP/32"
+
+# Docker Hub Configuration
+# dockerhub_token = "placeholder"  # Managed via AWS Secrets Manager
