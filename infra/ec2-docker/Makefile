@@ -1,4 +1,4 @@
-.PHONY: help init plan apply destroy ssh logs status restart update-container validate clean get-my-ip aws-login aws-logout aws-whoami stats disk-usage info sg-rules cost-estimate stop start docker-login docker-secret-setup docker-secret-update docker-secret-show backend-status state-list state-versions
+.PHONY: help init plan apply destroy destroy-auto destroy-app ssh logs status restart update-container validate clean get-my-ip aws-login aws-logout aws-whoami stats disk-usage info sg-rules cost-estimate stop start docker-login docker-secret-setup docker-secret-update docker-secret-show backend-status state-list state-versions
 
 # Colors for output
 RED := \033[0;31m
@@ -39,6 +39,20 @@ destroy: ## Destroy all infrastructure
 destroy-auto: ## Destroy without confirmation (dangerous!)
 	@echo "$(RED)Auto-destroying infrastructure...$(NC)"
 	terraform destroy -auto-approve
+
+destroy-app: ## Destroy only application (keep backend)
+	@echo "$(YELLOW)Destroying application resources (keeping backend)...$(NC)"
+	@echo "$(YELLOW)This will destroy: EC2, Security Group, IAM, Secrets$(NC)"
+	@echo "$(GREEN)Backend (S3 + DynamoDB) will be preserved$(NC)"
+	@terraform destroy \
+		-target=aws_instance.docker_host \
+		-target=aws_security_group.ec2_sg \
+		-target=aws_iam_instance_profile.ec2_profile \
+		-target=aws_iam_role_policy.secrets_manager_policy \
+		-target=aws_iam_role.ec2_role \
+		-target=aws_secretsmanager_secret_version.dockerhub_token_version \
+		-target=aws_secretsmanager_secret.dockerhub_token \
+		-target=aws_key_pair.ec2_key
 
 # Instance Management
 ssh: ## SSH into EC2 instance
