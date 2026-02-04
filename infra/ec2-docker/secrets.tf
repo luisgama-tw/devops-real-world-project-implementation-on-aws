@@ -3,11 +3,12 @@ resource "aws_secretsmanager_secret" "dockerhub_token" {
   name        = "MyTWTestToken"
   description = "Docker Hub access token for luisgamatw"
 
-  tags = {
-    Name        = "MyTWTestToken"
-    Environment = "dev"
-    ManagedBy   = "terraform"
-  }
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "MyTWTestToken"
+    }
+  )
 }
 
 # Secret version - value will be set manually via AWS CLI or Console
